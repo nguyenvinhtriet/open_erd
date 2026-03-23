@@ -10,7 +10,7 @@ import { getLayoutedElements, LayoutAlgorithm } from '../lib/layout';
 import { EntityNode } from './EntityNode';
 import { RelationEdge } from './RelationEdge';
 import { ContextMenu } from './ContextMenu';
-import { Download, Share2, Moon, Sun, LayoutTemplate, AlignLeft, Network, Grid3X3, Wand2 } from 'lucide-react';
+import { Download, Share2, Moon, Sun, LayoutTemplate, AlignLeft, Network, Grid3X3, Wand2, Info } from 'lucide-react';
 import { toPng, toSvg } from 'html-to-image';
 import { formatDSL } from '../lib/formatter';
 
@@ -22,14 +22,15 @@ const edgeTypes = {
   relation: RelationEdge,
 };
 
-function LayoutUpdater({ layoutAlgorithm, ast }: { layoutAlgorithm: LayoutAlgorithm, ast: any }) {
+function LayoutUpdater({ layoutVersion }: { layoutVersion: number }) {
   const { fitView } = useReactFlow();
   useEffect(() => {
+    if (layoutVersion === 0) return;
     const timer = setTimeout(() => {
       fitView({ duration: 800, padding: 0.2 });
-    }, 100);
+    }, 50);
     return () => clearTimeout(timer);
-  }, [layoutAlgorithm, ast, fitView]);
+  }, [layoutVersion, fitView]);
   return null;
 }
 
@@ -40,6 +41,8 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [exportBackground, setExportBackground] = useState(true);
   const [layoutAlgorithm, setLayoutAlgorithm] = useState<LayoutAlgorithm>('left-right');
+  const [layoutVersion, setLayoutVersion] = useState(0);
+  const [showInstructions, setShowInstructions] = useState(false);
   const flowRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export default function App() {
       getLayoutedElements(ast, layoutAlgorithm).then(({ nodes: layoutedNodes, edges: layoutedEdges }) => {
         setNodes(layoutedNodes);
         setEdges(layoutedEdges);
+        setLayoutVersion(v => v + 1);
       });
     }
   }, [ast, layoutAlgorithm, setNodes, setEdges]);
@@ -68,6 +72,7 @@ export default function App() {
           getLayoutedElements(ast, layoutAlgorithm).then(({ nodes: layoutedNodes, edges: layoutedEdges }) => {
             setNodes(layoutedNodes);
             setEdges(layoutedEdges);
+            setLayoutVersion(v => v + 1);
           });
         }
       }
@@ -168,9 +173,16 @@ export default function App() {
     const sourceField = sourceHandle.split('-')[0];
     const targetField = targetHandle.split('-')[0];
 
-    const currentDsl = state.dsl;
-    const newRelation = `\nrelation ${source}.${sourceField} 1 -> * ${target}.${targetField}\n`;
-    state.setDsl(currentDsl + newRelation);
+    state.setContextMenu({
+      isOpen: true,
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      type: 'createRel',
+      entityName: source,
+      fieldName: sourceField,
+      targetEntity: target,
+      targetField: targetField,
+    });
   };
 
   const toggleTheme = () => {
@@ -209,6 +221,9 @@ export default function App() {
           </button>
           <button onClick={handleExportSvg} className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-zinc-300 dark:border-zinc-700 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
             <Download size={16} /> SVG
+          </button>
+          <button onClick={() => setShowInstructions(true)} className="p-2 text-zinc-500 hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400 transition-colors" title="How to use">
+            <Info size={20} />
           </button>
           <button onClick={toggleTheme} className="p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors">
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
@@ -342,7 +357,7 @@ export default function App() {
                   nodesConnectable={true}
                   elementsSelectable={true}
                 >
-                  <LayoutUpdater layoutAlgorithm={layoutAlgorithm} ast={ast} />
+                  <LayoutUpdater layoutVersion={layoutVersion} />
                   <FlowPanel position="top-left" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-sm p-1 flex gap-1">
                   <button 
                     onClick={() => setLayoutAlgorithm('left-right')}
@@ -379,6 +394,73 @@ export default function App() {
           </Panel>
         </Group>
       </div>
+
+      {showInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowInstructions(false)}>
+          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Info size={20} className="text-indigo-500" />
+                How to use OpenERD
+              </h2>
+              <button onClick={() => setShowInstructions(false)} className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+                ✕
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[70vh] text-sm text-zinc-600 dark:text-zinc-300 space-y-4">
+              <section>
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Editor Basics</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Write your schema in the left panel using the simple DSL (Domain Specific Language).</li>
+                  <li>The diagram on the right updates automatically as you type.</li>
+                  <li>Press <strong>Ctrl+Enter</strong> (or Cmd+Enter) to format the code and re-layout the diagram.</li>
+                  <li>Press <strong>Ctrl+S</strong> (or Cmd+S) to save your schema to the URL so you can share it.</li>
+                </ul>
+              </section>
+              <section>
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Diagram Interaction</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong>Drag & Drop:</strong> Hover over the right side of any column to reveal a small circle. Drag this circle to another column to create a relationship.</li>
+                  <li><strong>Right-Click (Context Menu):</strong> Right-click on tables, columns, or the background to access actions:
+                    <ul className="list-circle pl-5 mt-1 space-y-1">
+                      <li><strong>Table:</strong> Rename, Add Field, Generate SQL Script, Delete.</li>
+                      <li><strong>Column:</strong> Update Field, Create Relationship, Delete.</li>
+                      <li><strong>Background:</strong> Add new Table.</li>
+                    </ul>
+                  </li>
+                  <li><strong>Selection:</strong> Click on a table to highlight it and its connected tables. Click the background to clear selection.</li>
+                </ul>
+              </section>
+              <section>
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">DSL Syntax Example</h3>
+                <pre className="bg-zinc-100 dark:bg-zinc-800 p-3 rounded-md text-xs font-mono overflow-x-auto">
+{`Table users {
+  id int [pk]
+  name varchar
+  email varchar [unique]
+}
+
+Table posts {
+  id int [pk]
+  user_id int
+  title varchar
+}
+
+Ref: users.id < posts.user_id`}
+                </pre>
+              </section>
+            </div>
+            <div className="px-6 py-4 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex justify-end">
+              <button 
+                onClick={() => setShowInstructions(false)}
+                className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 font-medium transition-colors"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

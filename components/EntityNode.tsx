@@ -34,12 +34,12 @@ export function EntityNode({ data }: { data: Record<string, unknown> }) {
 
   return (
     <div 
-      className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl shadow-lg min-w-[240px] font-sans text-sm overflow-hidden transition-shadow hover:shadow-xl"
+      className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-xl shadow-lg min-w-[240px] font-sans text-sm transition-shadow hover:shadow-xl"
       onContextMenu={(e) => handleContextMenu(e)}
     >
       {/* Header - Draggable Area */}
       <div 
-        className="bg-indigo-50 dark:bg-indigo-950/30 px-4 py-3 border-b border-zinc-300 dark:border-zinc-700 flex items-center justify-between cursor-grab active:cursor-grabbing"
+        className="bg-indigo-50 dark:bg-indigo-950/30 px-4 py-3 border-b border-zinc-300 dark:border-zinc-700 flex items-center justify-between cursor-grab active:cursor-grabbing rounded-t-xl"
       >
         <div className="flex items-center gap-2">
           <Table2 size={16} className="text-indigo-600 dark:text-indigo-400" />
@@ -59,23 +59,26 @@ export function EntityNode({ data }: { data: Record<string, unknown> }) {
           <div
             key={attr.name}
             onContextMenu={(e) => handleContextMenu(e, attr.name)}
-            className="flex items-center justify-between px-4 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 relative group transition-colors"
+            className="flex items-center justify-between px-4 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 relative group transition-colors last:rounded-b-xl"
           >
-            {/* Left Handles */}
+            {/* Invisible Target Handle covering the whole row for easy dropping */}
             <Handle
               type="target"
               position={Position.Left}
               id={`${attr.name}-left-target`}
-              className="!w-4 !h-4 !bg-indigo-100 dark:!bg-indigo-900 !border-2 !border-indigo-500 rounded-full opacity-20 group-hover:opacity-100 transition-opacity cursor-crosshair hover:!bg-indigo-500 hover:!border-white"
-              style={{ left: '-8px', top: '50%' }}
+              className="!w-full !h-full !bg-transparent !border-none !rounded-none opacity-0 z-10 cursor-crosshair"
+              style={{ left: 0, top: 0, position: 'absolute' }}
             />
+            {/* Right Handle (Source) - Visible on hover */}
             <Handle
               type="source"
-              position={Position.Left}
-              id={`${attr.name}-left-source`}
-              className="!w-4 !h-4 !bg-indigo-100 dark:!bg-indigo-900 !border-2 !border-indigo-500 rounded-full opacity-0 cursor-crosshair"
-              style={{ left: '-8px', top: '50%' }}
-            />
+              position={Position.Right}
+              id={`${attr.name}-right-source`}
+              className="!w-5 !h-5 !bg-white dark:!bg-zinc-900 !border-2 !border-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-crosshair hover:!bg-indigo-500 hover:!border-white flex items-center justify-center z-20"
+              style={{ right: '-10px', top: '50%' }}
+            >
+              <div className="w-2 h-2 rounded-full bg-indigo-500 group-hover:bg-white" />
+            </Handle>
 
             <div className="flex items-center gap-2.5">
               <span className="flex items-center justify-center w-4">
@@ -98,21 +101,6 @@ export function EntityNode({ data }: { data: Record<string, unknown> }) {
               </span>
             </div>
 
-            {/* Right Handles */}
-            <Handle
-              type="target"
-              position={Position.Right}
-              id={`${attr.name}-right-target`}
-              className="!w-4 !h-4 !bg-indigo-100 dark:!bg-indigo-900 !border-2 !border-indigo-500 rounded-full opacity-0 cursor-crosshair"
-              style={{ right: '-8px', top: '50%' }}
-            />
-            <Handle
-              type="source"
-              position={Position.Right}
-              id={`${attr.name}-right-source`}
-              className="!w-4 !h-4 !bg-indigo-100 dark:!bg-indigo-900 !border-2 !border-indigo-500 rounded-full opacity-20 group-hover:opacity-100 transition-opacity cursor-crosshair hover:!bg-indigo-500 hover:!border-white"
-              style={{ right: '-8px', top: '50%' }}
-            />
           </div>
         ))}
       </div>

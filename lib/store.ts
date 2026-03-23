@@ -25,7 +25,7 @@ interface ContextMenuState {
   isOpen: boolean;
   x: number;
   y: number;
-  type: 'entity' | 'edge' | 'pane' | 'renameTable' | 'updateField';
+  type: 'entity' | 'edge' | 'pane' | 'renameTable' | 'updateField' | 'createRel';
   entityName: string;
   fieldName?: string;
   edgeId?: string;

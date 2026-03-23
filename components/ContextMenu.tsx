@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { Plus, Trash2, Link as LinkIcon, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Link as LinkIcon, Edit2, Code } from 'lucide-react';
 
 export function ContextMenu() {
   const { contextMenu, setContextMenu, closeContextMenu, dsl, setDsl, ast } = useAppStore();
@@ -11,6 +11,8 @@ export function ContextMenu() {
   const [showUpdateRelDialog, setShowUpdateRelDialog] = useState(false);
   const [showRenameTableDialog, setShowRenameTableDialog] = useState(false);
   const [showUpdateFieldDialog, setShowUpdateFieldDialog] = useState(false);
+  const [showScriptDialog, setShowScriptDialog] = useState(false);
+  const [generatedScript, setGeneratedScript] = useState('');
   
   const [newTableName, setNewTableName] = useState('');
   const [newFieldName, setNewFieldName] = useState('');
@@ -28,6 +30,7 @@ export function ContextMenu() {
   const availableFields = selectedTableObj?.attributes.map(a => a.name) || [];
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (isOpen && contextMenu.type === 'renameTable') {
       setNewTableName(entityName);
       setShowRenameTableDialog(true);
@@ -44,12 +47,18 @@ export function ContextMenu() {
         setShowUpdateFieldDialog(true);
       }
       closeContextMenu();
+    } else if (isOpen && contextMenu.type === 'createRel') {
+      setRelTargetTable(contextMenu.targetEntity || '');
+      setRelTargetField(contextMenu.targetField || '');
+      setShowRelDialog(true);
+      closeContextMenu();
     }
-  }, [isOpen, contextMenu.type, entityName, fieldName, ast, closeContextMenu]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [isOpen, contextMenu.type, entityName, fieldName, ast, closeContextMenu, contextMenu.targetEntity, contextMenu.targetField]);
 
   useEffect(() => {
     const handleClick = () => closeContextMenu();
-    if (isOpen && contextMenu.type !== 'renameTable' && contextMenu.type !== 'updateField') {
+    if (isOpen && contextMenu.type !== 'renameTable' && contextMenu.type !== 'updateField' && contextMenu.type !== 'createRel') {
       window.addEventListener('click', handleClick);
     }
     return () => window.removeEventListener('click', handleClick);
@@ -72,6 +81,52 @@ export function ContextMenu() {
 
   const handleAddTable = () => {
     setShowAddTableDialog(true);
+    closeContextMenu();
+  };
+
+  const handleGenerateScript = () => {
+    const entity = ast?.entities.find(e => e.name === entityName);
+    if (!entity) return;
+
+    const columns = entity.attributes.map(a => a.name).join(', ');
+    const values = entity.attributes.map(a => {
+      const type = a.type.toLowerCase();
+      if (type.includes('int') || type.includes('number') || type.includes('float') || type.includes('decimal')) return '0';
+      if (type.includes('date') || type.includes('time')) return 'GETDATE()';
+      if (type.includes('bool')) return '1';
+      return "''";
+    }).join(', ');
+
+    const updateSet = entity.attributes.map(a => {
+      const type = a.type.toLowerCase();
+      let val = "''";
+      if (type.includes('int') || type.includes('number') || type.includes('float') || type.includes('decimal')) val = '0';
+      else if (type.includes('date') || type.includes('time')) val = 'GETDATE()';
+      else if (type.includes('bool')) val = '1';
+      return `${a.name} = ${val}`;
+    }).join(',\n  ');
+
+    const script = `-- SELECT TOP 10
+SELECT TOP 10 ${columns}
+FROM ${entityName};
+
+-- INSERT
+INSERT INTO ${entityName} (${columns})
+VALUES (${values});
+
+-- UPDATE
+UPDATE ${entityName}
+SET 
+  ${updateSet}
+WHERE id = 0; -- Replace with actual condition
+
+-- DELETE
+DELETE FROM ${entityName}
+WHERE id = 0; -- Replace with actual condition
+`;
+
+    setGeneratedScript(script);
+    setShowScriptDialog(true);
     closeContextMenu();
   };
 
@@ -645,7 +700,41 @@ export function ContextMenu() {
     );
   }
 
-  if (!isOpen || contextMenu.type === 'renameTable' || contextMenu.type === 'updateField') return null;
+  if (showScriptDialog) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowScriptDialog(false)}>
+        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl p-6 w-[600px] border border-zinc-200 dark:border-zinc-800" onClick={e => e.stopPropagation()}>
+          <h3 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-zinc-100">Generated Script</h3>
+          <div className="space-y-4">
+            <textarea 
+              value={generatedScript}
+              readOnly
+              className="w-full h-96 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-md bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 focus:outline-none font-mono text-sm"
+            />
+          </div>
+          <div className="mt-6 flex justify-end gap-3">
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(generatedScript);
+                alert('Copied to clipboard!');
+              }}
+              className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors"
+            >
+              Copy
+            </button>
+            <button 
+              onClick={() => setShowScriptDialog(false)}
+              className="px-4 py-2 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOpen || contextMenu.type === 'renameTable' || contextMenu.type === 'updateField' || contextMenu.type === 'createRel') return null;
 
   return (
     <div 
@@ -697,6 +786,12 @@ export function ContextMenu() {
           {!fieldName && (
             <>
               <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-1" />
+              <button 
+                onClick={handleGenerateScript}
+                className="w-full text-left px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-2 transition-colors"
+              >
+                <Code size={14} /> Generate Script
+              </button>
               <button 
                 onClick={handleDeleteTable}
                 className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center gap-2 transition-colors"
