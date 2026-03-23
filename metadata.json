@@ -1,0 +1,5 @@
+{
+  "name": "OpenERD",
+  "description": "Author entity-relationship diagrams using a text DSL, render instantly, and export to PNG/SVG.",
+  "requestFramePermissions": []
+}
