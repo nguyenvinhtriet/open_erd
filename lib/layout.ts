@@ -14,22 +14,24 @@ export async function getLayoutedElements(
   let layoutOptions: any = {
     'elk.algorithm': 'layered',
     'elk.direction': 'RIGHT',
-    'elk.spacing.nodeNode': '80',
-    'elk.layered.spacing.nodeNodeBetweenLayers': '150',
+    'elk.spacing.nodeNode': '120',
+    'elk.layered.spacing.nodeNodeBetweenLayers': '250',
+    'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+    'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
   };
 
   if (algorithm === 'snowflake') {
     layoutOptions = {
       'elk.algorithm': 'force',
-      'elk.spacing.nodeNode': '150',
+      'elk.spacing.nodeNode': '200',
     };
     direction = 'ANY';
   } else if (algorithm === 'compact') {
     layoutOptions = {
       'elk.algorithm': 'layered',
       'elk.direction': 'DOWN',
-      'elk.spacing.nodeNode': '40',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '60',
+      'elk.spacing.nodeNode': '60',
+      'elk.layered.spacing.nodeNodeBetweenLayers': '100',
     };
     direction = 'DOWN';
   }
@@ -50,6 +52,17 @@ export async function getLayoutedElements(
     const isSourceMany = rel.sourceCard === '*' || rel.sourceCard.toLowerCase() === 'n';
     const isTargetMany = rel.targetCard === '*' || rel.targetCard.toLowerCase() === 'n';
 
+    const sourceEntity = ast.entities.find(e => e.name === rel.source.entity);
+    const sourceAttr = sourceEntity?.attributes.find(a => a.name === rel.source.field);
+    const isSourceOptional = sourceAttr?.isNull !== false; // Default to optional if not explicitly not null
+
+    const targetEntity = ast.entities.find(e => e.name === rel.target.entity);
+    const targetAttr = targetEntity?.attributes.find(a => a.name === rel.target.field);
+    const isTargetOptional = targetAttr?.isNull !== false;
+
+    const sourceMarker = `url(#crow-${isSourceMany ? 'many' : 'one'}-${isSourceOptional ? 'optional' : 'mandatory'}-start)`;
+    const targetMarker = `url(#crow-${isTargetMany ? 'many' : 'one'}-${isTargetOptional ? 'optional' : 'mandatory'}-end)`;
+
     return {
       id: `e${i}-${rel.source.entity}-${rel.target.entity}`,
       source: rel.source.entity,
@@ -62,8 +75,8 @@ export async function getLayoutedElements(
         targetCard: rel.targetCard,
         label: rel.label,
       },
-      markerEnd: isTargetMany ? 'url(#crow-many-end)' : 'url(#crow-one-end)',
-      markerStart: isSourceMany ? 'url(#crow-many-start)' : 'url(#crow-one-start)',
+      markerEnd: targetMarker,
+      markerStart: sourceMarker,
       animated: false,
       style: { stroke: '#64748b', strokeWidth: 2 },
     };

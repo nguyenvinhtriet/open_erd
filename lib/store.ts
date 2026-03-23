@@ -25,8 +25,15 @@ interface ContextMenuState {
   isOpen: boolean;
   x: number;
   y: number;
+  type: 'entity' | 'edge' | 'pane' | 'renameTable' | 'updateField';
   entityName: string;
   fieldName?: string;
+  edgeId?: string;
+  sourceEntity?: string;
+  sourceField?: string;
+  targetEntity?: string;
+  targetField?: string;
+  cardinality?: string;
 }
 
 interface AppState {
@@ -45,7 +52,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   dsl: DEFAULT_DSL,
   ast: parseDSL(DEFAULT_DSL).ast,
   errors: parseDSL(DEFAULT_DSL).errors,
-  contextMenu: { isOpen: false, x: 0, y: 0, entityName: '' },
+  contextMenu: { isOpen: false, x: 0, y: 0, type: 'pane', entityName: '' },
   setDsl: (dsl) => {
     const { ast, errors } = parseDSL(dsl);
     set({ dsl, ast: ast || get().ast, errors });

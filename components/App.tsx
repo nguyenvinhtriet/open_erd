@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Panel, Group, Separator } from 'react-resizable-panels';
 import Editor from '@monaco-editor/react';
-import { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, Panel as FlowPanel, Node, Edge, Connection, ReactFlowProvider, useReactFlow } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, Panel as FlowPanel, Node, Edge, Connection, ConnectionMode, ReactFlowProvider, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useAppStore } from '../lib/store';
 import { getLayoutedElements, LayoutAlgorithm } from '../lib/layout';
@@ -160,16 +160,17 @@ export default function App() {
   };
 
   const onConnect = (params: Connection) => {
-    if (!ast) return;
+    const state = useAppStore.getState();
+    if (!state.ast) return;
     const { source, sourceHandle, target, targetHandle } = params;
     if (!source || !target || !sourceHandle || !targetHandle) return;
 
     const sourceField = sourceHandle.split('-')[0];
     const targetField = targetHandle.split('-')[0];
 
-    const currentDsl = useAppStore.getState().dsl;
+    const currentDsl = state.dsl;
     const newRelation = `\nrelation ${source}.${sourceField} 1 -> * ${target}.${targetField}\n`;
-    setDsl(currentDsl + newRelation);
+    state.setDsl(currentDsl + newRelation);
   };
 
   const toggleTheme = () => {
@@ -262,21 +263,36 @@ export default function App() {
             <div className="h-full w-full relative" ref={flowRef}>
               <svg style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0 }}>
                 <defs>
-                  {/* Crow's foot: Many (End) */}
-                  <marker id="crow-many-end" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-                    <path d="M 0 0 L 10 6 L 0 12 M 10 0 L 10 12" fill="none" stroke="#64748b" strokeWidth="1.5" />
+                  {/* END MARKERS */}
+                  <marker id="crow-many-mandatory-end" markerWidth="24" markerHeight="12" refX="24" refY="6" orient="auto">
+                    <path d="M 0 6 L 24 6 M 12 0 L 24 6 M 12 12 L 24 6 M 6 0 L 6 12" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </marker>
-                  {/* Crow's foot: One (End) */}
-                  <marker id="crow-one-end" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-                    <path d="M 5 0 L 5 12 M 10 0 L 10 12" fill="none" stroke="#64748b" strokeWidth="1.5" />
+                  <marker id="crow-many-optional-end" markerWidth="24" markerHeight="12" refX="24" refY="6" orient="auto">
+                    <circle cx="6" cy="6" r="3" fill="white" stroke="#94a3b8" strokeWidth="1.5" />
+                    <path d="M 0 6 L 3 6 M 9 6 L 24 6 M 12 0 L 24 6 M 12 12 L 24 6" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </marker>
-                  {/* Crow's foot: Many (Start) */}
-                  <marker id="crow-many-start" markerWidth="12" markerHeight="12" refX="2" refY="6" orient="auto">
-                    <path d="M 12 0 L 2 6 L 12 12 M 2 0 L 2 12" fill="none" stroke="#64748b" strokeWidth="1.5" />
+                  <marker id="crow-one-mandatory-end" markerWidth="24" markerHeight="12" refX="24" refY="6" orient="auto">
+                    <path d="M 0 6 L 24 6 M 6 0 L 6 12 M 14 0 L 14 12" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </marker>
-                  {/* Crow's foot: One (Start) */}
-                  <marker id="crow-one-start" markerWidth="12" markerHeight="12" refX="2" refY="6" orient="auto">
-                    <path d="M 2 0 L 2 12 M 7 0 L 7 12" fill="none" stroke="#64748b" strokeWidth="1.5" />
+                  <marker id="crow-one-optional-end" markerWidth="24" markerHeight="12" refX="24" refY="6" orient="auto">
+                    <circle cx="6" cy="6" r="3" fill="white" stroke="#94a3b8" strokeWidth="1.5" />
+                    <path d="M 0 6 L 3 6 M 9 6 L 24 6 M 14 0 L 14 12" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </marker>
+
+                  {/* START MARKERS */}
+                  <marker id="crow-many-mandatory-start" markerWidth="24" markerHeight="12" refX="0" refY="6" orient="auto">
+                    <path d="M 0 6 L 24 6 M 12 0 L 0 6 M 12 12 L 0 6 M 18 0 L 18 12" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </marker>
+                  <marker id="crow-many-optional-start" markerWidth="24" markerHeight="12" refX="0" refY="6" orient="auto">
+                    <circle cx="18" cy="6" r="3" fill="white" stroke="#94a3b8" strokeWidth="1.5" />
+                    <path d="M 0 6 L 15 6 M 21 6 L 24 6 M 12 0 L 0 6 M 12 12 L 0 6" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </marker>
+                  <marker id="crow-one-mandatory-start" markerWidth="24" markerHeight="12" refX="0" refY="6" orient="auto">
+                    <path d="M 0 6 L 24 6 M 18 0 L 18 12 M 10 0 L 10 12" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </marker>
+                  <marker id="crow-one-optional-start" markerWidth="24" markerHeight="12" refX="0" refY="6" orient="auto">
+                    <circle cx="18" cy="6" r="3" fill="white" stroke="#94a3b8" strokeWidth="1.5" />
+                    <path d="M 0 6 L 15 6 M 21 6 L 24 6 M 10 0 L 10 12" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </marker>
                 </defs>
               </svg>
@@ -288,12 +304,31 @@ export default function App() {
                   onEdgesChange={onEdgesChange}
                   onSelectionChange={onSelectionChange}
                   onConnect={onConnect}
+                  connectionMode={ConnectionMode.Loose}
+                  onEdgeContextMenu={(e, edge) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const data = edge.data as any;
+                    useAppStore.getState().setContextMenu({
+                      isOpen: true,
+                      x: e.clientX,
+                      y: e.clientY,
+                      type: 'edge',
+                      edgeId: edge.id,
+                      sourceEntity: edge.source,
+                      sourceField: edge.sourceHandle?.split('-')[0],
+                      targetEntity: edge.target,
+                      targetField: edge.targetHandle?.split('-')[0],
+                      cardinality: `${data.sourceCard} -> ${data.targetCard}`,
+                    });
+                  }}
                   onPaneContextMenu={(e) => {
                     e.preventDefault();
                     useAppStore.getState().setContextMenu({
                       isOpen: true,
                       x: e.clientX,
                       y: e.clientY,
+                      type: 'pane',
                       entityName: '',
                       fieldName: undefined,
                     });

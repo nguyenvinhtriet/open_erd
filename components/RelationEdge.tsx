@@ -48,40 +48,6 @@ export function RelationEdge({
             {label}
           </div>
         )}
-        {sourceCard && (
-          <div
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${sourceX + (targetX > sourceX ? 25 : -25)}px,${sourceY}px)`,
-              fontSize: 12,
-              fontWeight: 700,
-              color: '#475569',
-              background: 'rgba(255,255,255,0.8)',
-              padding: '2px 4px',
-              borderRadius: '4px',
-              pointerEvents: 'none',
-            }}
-          >
-            {sourceCard}
-          </div>
-        )}
-        {targetCard && (
-          <div
-            style={{
-              position: 'absolute',
-              transform: `translate(-50%, -50%) translate(${targetX + (sourceX > targetX ? 25 : -25)}px,${targetY}px)`,
-              fontSize: 12,
-              fontWeight: 700,
-              color: '#475569',
-              background: 'rgba(255,255,255,0.8)',
-              padding: '2px 4px',
-              borderRadius: '4px',
-              pointerEvents: 'none',
-            }}
-          >
-            {targetCard}
-          </div>
-        )}
       </EdgeLabelRenderer>
     </>
   );

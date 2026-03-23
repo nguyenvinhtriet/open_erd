@@ -1,5 +1,5 @@
 import { Handle, Position } from '@xyflow/react';
-import { Key, Link, Hash, Table2 } from 'lucide-react';
+import { Key, Link, Hash, Table2, Edit2 } from 'lucide-react';
 import { ASTEntity } from '../lib/parser';
 import { useAppStore } from '../lib/store';
 
@@ -14,8 +14,21 @@ export function EntityNode({ data }: { data: Record<string, unknown> }) {
       isOpen: true,
       x: e.clientX,
       y: e.clientY,
+      type: 'entity',
       entityName: entity.name,
       fieldName,
+    });
+  };
+
+  const handleRenameTable = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      type: 'renameTable',
+      entityName: entity.name,
     });
   };
 
@@ -26,10 +39,18 @@ export function EntityNode({ data }: { data: Record<string, unknown> }) {
     >
       {/* Header - Draggable Area */}
       <div 
-        className="bg-indigo-50 dark:bg-indigo-950/30 px-4 py-3 border-b border-zinc-300 dark:border-zinc-700 flex items-center gap-2 cursor-grab active:cursor-grabbing"
+        className="bg-indigo-50 dark:bg-indigo-950/30 px-4 py-3 border-b border-zinc-300 dark:border-zinc-700 flex items-center justify-between cursor-grab active:cursor-grabbing"
       >
-        <Table2 size={16} className="text-indigo-600 dark:text-indigo-400" />
-        <span className="font-bold text-zinc-900 dark:text-zinc-100">{entity.name}</span>
+        <div className="flex items-center gap-2">
+          <Table2 size={16} className="text-indigo-600 dark:text-indigo-400" />
+          <span className="font-bold text-zinc-900 dark:text-zinc-100">{entity.name}</span>
+        </div>
+        <button 
+          onClick={handleRenameTable}
+          className="text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors nodrag"
+        >
+          <Edit2 size={14} />
+        </button>
       </div>
 
       {/* Columns - Non-draggable Area */}
